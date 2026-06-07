@@ -1,5 +1,5 @@
 import frappe
-from firebase_admin import _apps, initialize_app
+from firebase_admin import _apps, initialize_app, credentials
 from typing import List
 from frappe_notifier.frappe_notifier.doctype.fn_user_device_token.fn_user_device_token import deactivate_device_token
 import json
@@ -12,24 +12,21 @@ class FirebaseInitializationError(Exception):
     pass
 
 def initialize_firebase_app() -> None:
-    """Initialize Firebase app with proper error handling"""
     try:
         if not _apps:
-            firebase_config_json = frappe.db.get_single_value(SETTINGS_DOCTYPE, "firebase_config")
-            if not firebase_config_json:
-                raise FirebaseInitializationError("Firebase configuration not found in settings")
-            
+            service_account_json = frappe.db.get_single_value(SETTINGS_DOCTYPE, "firebase_config")
+            if not service_account_json:
+                raise FirebaseInitializationError("Service account JSON not found in Frappe Notifier Settings")
             try:
-                firebase_config = frappe.parse_json(firebase_config_json)
+                service_account_info = frappe.parse_json(service_account_json)
             except Exception as e:
-                raise FirebaseInitializationError(f"Invalid Firebase configuration JSON: {str(e)}")
-            
+                raise FirebaseInitializationError(f"Invalid service account JSON: {str(e)}")
             try:
-                initialize_app(options=firebase_config)
+                cred = credentials.Certificate(service_account_info)
+                initialize_app(cred)
             except Exception as e:
                 raise FirebaseInitializationError(f"Failed to initialize Firebase app: {str(e)}")
     except Exception as e:
-        # Re-raise to be caught by the decorator
         raise FirebaseInitializationError(f"Firebase initialization failed: {str(e)}")
 
 def subscribe_tokens_to_topic(tokens: List[str], topic_name: str):
