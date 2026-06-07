@@ -147,8 +147,13 @@ def send_notification(
         webpush=webpush_config,
         tokens=tokens,
         data=data_dict,
-        # High priority bypasses Android Doze mode for immediate delivery
-        android=messaging.AndroidConfig(priority='high'),
+        android=messaging.AndroidConfig(
+            priority='high',
+            notification=messaging.AndroidNotification(
+                title=title,
+                body=body or "",
+            ),
+        ),
     )
     
     try:
